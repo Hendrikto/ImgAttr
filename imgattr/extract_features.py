@@ -17,3 +17,11 @@ def extract_color_histogram(image, bins=10):
     data = np.array(image.getdata())
     histogram = np.histogramdd(data, bins=bins, range=((0, 255),) * 3, density=True)[0]
     return histogram.ravel()
+
+
+def extract_features(image):
+    """Extract features from an image."""
+    return np.concatenate((
+        extract_band_histograms(image),
+        extract_color_histogram(image),
+    ))
