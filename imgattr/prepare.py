@@ -2,6 +2,9 @@ import os.path
 from zipfile import ZipFile
 
 import pandas as pd
+from PIL import Image
+
+from .read_images import read_images
 
 max_image_bytes = 1024 ** 2
 
@@ -44,3 +47,17 @@ def extract_images(input_path, output_path, names):
             else:
                 output_zip.writestr(image_name, input_zip.read(image_info.filename))
     return rejected
+
+
+def resize_images(input_path, output_path, max_size=(500, 500)):
+    """Resize images to a maximum size."""
+    with ZipFile(output_path, 'w') as output_zip:
+        for image_name, image in read_images(input_path):
+            # RGBA and P images cannot be stored in JPEG format
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+
+            image.thumbnail(max_size, resample=Image.LANCZOS)
+
+            with output_zip.open(image_name, 'w') as image_file:
+                image.save(image_file, format='JPEG')
