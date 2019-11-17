@@ -1,12 +1,41 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
+from .extract_features import extract_features
 from .prepare import (
     extract_images,
     filter_info,
     resize_images,
+)
+from .read_images import read_images
+
+extract_features_parser = ArgumentParser(
+    prog='extract_features',
+    description='Generate features from the images.',
+)
+extract_features_parser.add_argument(
+    '-i', '--input',
+    type=Path,
+    default='data/images-resized.zip',
+    help='path to the zip file with the input images',
+    dest='input_path',
+)
+extract_features_parser.add_argument(
+    '-o', '--output',
+    type=Path,
+    default='data/features.npz',
+    help='path to the output file',
+    dest='output_path',
+)
+extract_features_parser.add_argument(
+    '--info',
+    type=Path,
+    default='data/info.csv',
+    help='path to the CSV file with the relevant images',
+    dest='info_path',
 )
 
 extract_images_parser = ArgumentParser(
@@ -76,6 +105,18 @@ resize_images_parser.add_argument(
 
 class CLICommand:
     @staticmethod
+    def extract_features(info_path, input_path, output_path):
+        print(f"# Reading relevant images from '{info_path}'…")
+        info = pd.read_csv(info_path)
+        print(f"# Extracting image features from '{input_path}'…")
+        features = np.vstack([
+            extract_features(image)
+            for _, image in read_images(input_path, names=info.new_filename)
+        ])
+        print(f"# Saving features as '{output_path}'…")
+        np.savez_compressed(output_path, features=features)
+
+    @staticmethod
     def extract_images(info_path, input_path, output_path):
         print(f"# Reading relevant images from '{info_path}'…")
         info = pd.read_csv(info_path)
@@ -99,6 +140,7 @@ class CLICommand:
 
 
 commands = {
+    'extract_features': (CLICommand.extract_features, extract_features_parser),
     'extract_images': (CLICommand.extract_images, extract_images_parser),
     'filter_info': (CLICommand.filter_info, filter_info_parser),
     'resize_images': (CLICommand.resize_images, resize_images_parser),
