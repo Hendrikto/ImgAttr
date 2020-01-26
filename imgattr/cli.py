@@ -3,7 +3,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.svm import SVC
 
+from .evaluate_classifier import evaluate_classifier
 from .extract_features import extract_features
 from .prepare import (
     extract_images,
@@ -11,6 +13,32 @@ from .prepare import (
     resize_images,
 )
 from .read_images import read_images
+
+evaluate_classifier_parser = ArgumentParser(
+    prog='evaluate_classifier',
+    description='Evaluate a classifier on the dataset.',
+)
+evaluate_classifier_parser.add_argument(
+    '--features',
+    type=Path,
+    default='data/features.npz',
+    help='path to the CSV file containing a feature matrix',
+    dest='features_path',
+)
+evaluate_classifier_parser.add_argument(
+    '--info',
+    type=Path,
+    default='data/info.csv',
+    help='path to the CSV file containing image information',
+    dest='info_path',
+)
+evaluate_classifier_parser.add_argument(
+    '-k', '--splits',
+    type=int,
+    default=10,
+    help='number of splits for k-fold cross-validation',
+    dest='n_splits',
+)
 
 extract_features_parser = ArgumentParser(
     prog='extract_features',
@@ -105,6 +133,18 @@ resize_images_parser.add_argument(
 
 class CLICommand:
     @staticmethod
+    def evaluate_classifier(features_path, info_path, n_splits):
+        print(f"# Loading feature matrix from '{features_path}'…")
+        X = np.load(features_path)['features']
+        print(f"# Reading class labels from '{info_path}'…")
+        y = pd.read_csv(info_path).artist
+        print(f"# Evaluating classifier using {n_splits}-fold cross-validation…")
+        classifier = SVC(gamma='auto')
+        metrics = evaluate_classifier(classifier, X, y, n_splits=n_splits)
+        print('# Metrics:', metrics.to_string(), sep='\n')
+        print('# Metrics summary:', metrics.describe().to_string(), sep='\n')
+
+    @staticmethod
     def extract_features(info_path, input_path, output_path):
         print(f"# Reading relevant images from '{info_path}'…")
         info = pd.read_csv(info_path)
@@ -142,6 +182,7 @@ class CLICommand:
 
 
 commands = {
+    'evaluate_classifier': (CLICommand.evaluate_classifier, evaluate_classifier_parser),
     'extract_features': (CLICommand.extract_features, extract_features_parser),
     'extract_images': (CLICommand.extract_images, extract_images_parser),
     'filter_info': (CLICommand.filter_info, filter_info_parser),
