@@ -19,9 +19,15 @@ def extract_color_histogram(image, bins=10):
     return histogram.ravel()
 
 
+def extract_extrema(image):
+    """Extract extrema for each bands."""
+    return np.array(image.getextrema()).ravel()
+
+
 def extract_features(image):
     """Extract features from an image."""
     return np.concatenate((
         extract_band_histograms(image),
         extract_color_histogram(image),
+        extract_extrema(image),
     ))
