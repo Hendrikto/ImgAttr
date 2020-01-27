@@ -3,6 +3,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.feature_selection import (
+    SelectPercentile,
+    chi2,
+)
 from sklearn.svm import SVC
 
 from .evaluate_classifier import evaluate_classifier
@@ -130,6 +134,38 @@ resize_images_parser.add_argument(
     dest='output_path',
 )
 
+select_features_parser = ArgumentParser(
+    prog='select_features',
+    description='Perform feature selection on the extracted features.',
+)
+select_features_parser.add_argument(
+    '-i', '--input',
+    type=Path,
+    default='data/features.npz',
+    help='path to input feature matrix',
+    dest='input_path',
+)
+select_features_parser.add_argument(
+    '-o', '--output',
+    type=Path,
+    default='data/features-selected.npz',
+    help='path to output feature matrix',
+    dest='output_path',
+)
+select_features_parser.add_argument(
+    '--info',
+    type=Path,
+    default='data/info.csv',
+    help='path to the CSV file containing image information',
+    dest='info_path',
+)
+select_features_parser.add_argument(
+    '--percentile',
+    type=int,
+    default=20,
+    help='percentile of the features to keep',
+)
+
 
 class CLICommand:
     @staticmethod
@@ -180,6 +216,18 @@ class CLICommand:
         print(f"# Resizing images from '{input_path}' into '{output_path}'…")
         resize_images(input_path, output_path)
 
+    @staticmethod
+    def select_features(input_path, output_path, info_path, percentile):
+        print(f"# Loading feature matrix from '{input_path}'…")
+        X = np.load(input_path)['features']
+        print(f"# Reading class labels from '{info_path}'…")
+        y = pd.read_csv(info_path).artist
+        print(f'# Selecting most informative features…')
+        feature_selector = SelectPercentile(chi2, percentile=percentile)
+        X = feature_selector.fit_transform(X, y)
+        print(f"# Saving selected features as '{output_path}'…")
+        np.savez_compressed(output_path, features=X)
+
 
 commands = {
     'evaluate_classifier': (CLICommand.evaluate_classifier, evaluate_classifier_parser),
@@ -187,6 +235,7 @@ commands = {
     'extract_images': (CLICommand.extract_images, extract_images_parser),
     'filter_info': (CLICommand.filter_info, filter_info_parser),
     'resize_images': (CLICommand.resize_images, resize_images_parser),
+    'select_features': (CLICommand.select_features, select_features_parser),
 }
 
 command_parser = ArgumentParser(
