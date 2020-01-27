@@ -109,10 +109,12 @@ class CLICommand:
         print(f"# Reading relevant images from '{info_path}'…")
         info = pd.read_csv(info_path)
         print(f"# Extracting image features from '{input_path}'…")
-        features = np.vstack([
-            extract_features(image)
-            for _, image in read_images(input_path, names=info.new_filename)
-        ])
+        n_images = len(info)
+        features = []
+        for i, (image_name, image) in enumerate(read_images(input_path, names=info.new_filename)):
+            print(f'{i * 100 / n_images:.2f}%\t{image_name}')
+            features.append(extract_features(image))
+        features = np.array(features)
         print(f"# Saving features as '{output_path}'…")
         np.savez_compressed(output_path, features=features)
 
