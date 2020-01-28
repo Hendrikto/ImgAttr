@@ -1,4 +1,5 @@
 /data/features.npz
+/data/features-selected.npz
 /data/images.zip
 /data/images-resized.zip
 /data/info.csv
