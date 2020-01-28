@@ -1,6 +1,8 @@
 from collections import Counter
 
 import numpy as np
+import skimage.feature
+from PIL import Image
 
 
 def extract_band_histograms(image, bins=32):
@@ -24,6 +26,23 @@ def extract_color_histogram(image, bins=10):
 def extract_extrema(image):
     """Extract extrema for each bands."""
     return np.array(image.getextrema()).ravel()
+
+
+def extract_hog(image):
+    """Extract histogram of oriented gradients."""
+    square_size = min(image.size)
+    image_resized = image.resize(
+        (96, 96),
+        box=(0, 0, square_size, square_size),
+        resample=Image.LANCZOS,
+    )
+    pixels = np.array(image_resized.getdata()).reshape((image_resized.size + (-1,)))
+    return skimage.feature.hog(
+        pixels,
+        multichannel=True,
+        orientations=8,
+        pixels_per_cell=(8, 8),
+    )
 
 
 def extract_palette_info(image):
@@ -51,5 +70,6 @@ def extract_features(image):
         extract_band_histograms(image),
         extract_color_histogram(image),
         extract_extrema(image),
+        extract_hog(image),
         extract_palette_info(image),
     ))
